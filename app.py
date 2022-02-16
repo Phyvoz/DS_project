@@ -50,6 +50,27 @@ def lin_reg(feature):
         plt.xlabel(feature.capitalize())
         plt.ylabel('Rings')
         st.write(fig)
+
+def multi_lin_reg(df, features):
+    df_reg = df.copy()
+    x = df_reg[features]
+    y = df_reg['rings']
+
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=70, step=10)
+    train_size = train_size / 100
+    x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
+
+    model = LinearRegression()
+    model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+
+    errors = sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
+    st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
+    st.text(f'Error: {errors}')
+    st.text(f'R2: {r2}')
     
 
 header = st.container()
@@ -122,6 +143,31 @@ with regression:
     option = st.selectbox('What feature would you like to analyse against the number of rings?', ('length', 'diameter', 'height', 'whole_weight', 'shucked_weight', 'viscera_weight', 'shell_weight'))
     st.write('You selected:', option)
     lin_reg(option)
+
+DICT = {'I':1, 'M':2, 'F':3}
+df['enc_sex'] = df['sex'].replace(DICT)
+
+multiple_linear_regression = st.container()
+with multiple_linear_regression:
+    st.header('Multiple Linear Regression')
+
+    features = []
+    features_dict = {'Sex':'enc_sex',
+    'Length':'length', 
+    'Diameter':'diameter', 
+    'Height':'height', 
+    'Whole Weight':'whole_weight', 
+    'Shucked Weight':'shucked_weight', 
+    'Viscera Weight':'viscera_weight', 
+    'Shell Weight':'shell_weight'}
+    options = st.multiselect('Selection: ', (features_dict.keys()))
+    for i in options:
+        features.append(features_dict[i])
+    try:
+        multi_lin_reg(df, features)
+    except ValueError:
+        st.text('PLEASE SELECT AT LEAST ONE FEATURE')
+
 
 
 
