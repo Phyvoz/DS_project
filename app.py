@@ -4,6 +4,11 @@ import numpy as np
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from math import sqrt
+
 
 def remove_outliers(df):
     q1 = np.quantile(df.height, 0.25)
@@ -15,6 +20,36 @@ def remove_outliers(df):
             outliers.append(i)
     above_05_height = df['height'] < 0.5
     df = df[above_05_height]
+
+def lin_reg(feature):
+    x = df[feature].values
+    y = df['rings'].values
+    x = x.reshape(-1, 1)
+    y = y.reshape(-1, 1)
+
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=80, step=10)
+    train_size = train_size / 100
+    x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
+
+    model = LinearRegression()
+    model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+
+    errors = sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
+    st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
+    st.text(f'Rooted Mean Squared Error: {errors}')
+    st.text(f'R2 score: {r2}')
+
+    with st.expander('Show Plot'):
+        fig, ax = plt.subplots(figsize=(5,5))
+        plt.scatter(x_train, y_train)
+        plt.plot(x_test, y_pred, c='black')
+        plt.xlabel(feature.capitalize())
+        plt.ylabel('Rings')
+        st.write(fig)
     
 
 header = st.container()
@@ -77,7 +112,20 @@ _="""
         st.write(fig)
     with st.expander('Show Pairplot'):
         fig = sns.pairplot(df, hue='rings', palette='husl', height=1.5)
-        st.pyplot(fig) """ #not going to run these lines because they take a lot of time to execute
+        st.pyplot(fig) """ #not going to run these lines because they take a lot of time to execute (and are pretty useless to visualize)
+
+
+regression = st.container()
+with regression:
+    st.header('Part 2: Linear Regression')
+    st.subheader('In this section we will analyse the dataset through a linear regression algorithm')
+    option = st.selectbox('What feature would you like to analyse against the number of rings?', ('length', 'diameter', 'height', 'whole_weight', 'shucked_weight', 'viscera_weight', 'shell_weight'))
+    st.write('You selected:', option)
+    lin_reg(option)
+
+
+
+
 
 
 
