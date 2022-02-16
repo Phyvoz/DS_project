@@ -7,6 +7,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
 from math import sqrt
 
 
@@ -69,9 +70,25 @@ def multi_lin_reg(df, features):
 
     st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
     st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
-    st.text(f'Error: {errors}')
+    st.text(f'RMSE: {errors}')
     st.text(f'R2: {r2}')
-    
+
+def random_forest_regressor(df, est):
+    x = df.drop(['sex', 'rings'], axis=1).values
+    y = df['rings'].values
+
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=60, step=10)
+    train_size = train_size / 100
+    x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=est, random_state=42)
+    model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+
+    st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
+    st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
+    st.text(f'RMSE: {sqrt(mean_squared_error(y_pred, y_test))}')
+
 
 header = st.container()
 with header:
@@ -165,6 +182,15 @@ with multiple_linear_regression:
         features.append(features_dict[i])
     try:
         multi_lin_reg(df, features)
+    except ValueError:
+        st.text('PLEASE SELECT AT LEAST ONE FEATURE')
+
+random_forest_regression = st.container()
+with random_forest_regression:
+    st.header('Part 3: Random Forest Regression')
+    estimators = st.slider('Select number of estimators', min_value=20, max_value=120, step=1, value=100)
+    try:
+        random_forest_regressor(df, est=estimators)
     except ValueError:
         st.text('PLEASE SELECT AT LEAST ONE FEATURE')
 
