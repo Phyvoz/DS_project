@@ -9,6 +9,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 from math import sqrt
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 
 
 def remove_outliers(df):
@@ -57,7 +59,7 @@ def multi_lin_reg(df, features):
     x = df_reg[features]
     y = df_reg['rings']
 
-    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=70, step=10)
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=80, step=10, key='b')
     train_size = train_size / 100
     x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
 
@@ -69,7 +71,7 @@ def multi_lin_reg(df, features):
     r2 = r2_score(y_test, y_pred)
 
     st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
-    st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
+    st.text(f'Test accuracy: {model.score(x_test, y_pred)*100} %')
     st.text(f'RMSE: {errors}')
     st.text(f'R2: {r2}')
 
@@ -77,7 +79,7 @@ def random_forest_regressor(df, est):
     x = df.drop(['sex', 'rings'], axis=1).values
     y = df['rings'].values
 
-    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=60, step=10)
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=80, step=10, key='c')
     train_size = train_size / 100
     x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
 
@@ -89,6 +91,31 @@ def random_forest_regressor(df, est):
     st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
     st.text(f'RMSE: {sqrt(mean_squared_error(y_pred, y_test))}')
 
+def logit(df):
+    df_class = df.copy()
+    N = st.slider('Length of the group (n. of rings)', min_value=1, max_value=5, value=1, step=1)
+    group_list = []
+    for i in df_class['rings']:
+        group_list.append(i // N)
+    df_class['group'] = np.array(group_list)
+
+    x = df_class.drop(['sex', 'rings', 'group'], axis=1)
+    y = df_class['group']
+    
+    train_size = st.slider('Train Size (%):', min_value=10, max_value=90, value=80, step=10, key='a')
+    train_size = train_size / 100
+    x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=train_size, random_state=42)
+
+    model = LogisticRegression(random_state=42, max_iter=10000)
+
+    standard_scaler = StandardScaler() #for normalizing the distribution of the features
+    x_train = standard_scaler.fit_transform(x_train)
+    x_test = standard_scaler.transform(x_test)
+
+    model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+    st.text(f'Train accuracy: {model.score(x_train, y_train)*100} %')
+    st.text(f'Test accuracy: {model.score(x_test, y_test)*100} %')
 
 header = st.container()
 with header:
@@ -103,7 +130,6 @@ df.columns = ['sex', 'length', 'diameter', 'height', 'whole_weight', 'shucked_we
 data_exploration = st.container()
 with data_exploration:
     st.header('Part 1: Exploring the data')
-    st.sidebar.download_button('DOWNLOAD (.data)', df.to_csv() , file_name='abalone.data')
     show_head = st.checkbox('Show the first lines of the dataset.')
     if show_head:
         st.write(df.head())
@@ -157,9 +183,16 @@ regression = st.container()
 with regression:
     st.header('Part 2: Linear Regression')
     st.subheader('In this section we will analyse the dataset through a linear regression algorithm')
-    option = st.selectbox('What feature would you like to analyse against the number of rings?', ('length', 'diameter', 'height', 'whole_weight', 'shucked_weight', 'viscera_weight', 'shell_weight'))
+    features_dict = {'Length':'length', 
+    'Diameter':'diameter', 
+    'Height':'height', 
+    'Whole Weight':'whole_weight', 
+    'Shucked Weight':'shucked_weight', 
+    'Viscera Weight':'viscera_weight', 
+    'Shell Weight':'shell_weight'}
+    option = st.selectbox('What feature would you like to analyse against the number of rings?', (features_dict.keys()))
     st.write('You selected:', option)
-    lin_reg(option)
+    lin_reg(features_dict[option])
 
 DICT = {'I':1, 'M':2, 'F':3}
 df['enc_sex'] = df['sex'].replace(DICT)
@@ -167,7 +200,7 @@ df['enc_sex'] = df['sex'].replace(DICT)
 multiple_linear_regression = st.container()
 with multiple_linear_regression:
     st.header('Multiple Linear Regression')
-
+    st.subheader('Here we will see the behaviour of a linear regression using multiple variables as input')
     features = []
     features_dict = {'Sex':'enc_sex',
     'Length':'length', 
@@ -194,6 +227,11 @@ with random_forest_regression:
     except ValueError:
         st.text('PLEASE SELECT AT LEAST ONE FEATURE')
 
+classification = st.container()
+with classification:
+    st.header('Part 4: Logistic Regression Model')
+    st.subheader('In this section we will divide out output variable in groups of N rings. Also notice that our input data has been standardised.')
+    logit(df)
 
 
 
